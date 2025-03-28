@@ -1,0 +1,22 @@
+<svg width="1920" height="1080" viewBox="0 0 1920 1080" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- Background -->
+    <rect width="1920" height="1080" fill="#F3F4F6"/>
+    
+    <!-- Camera Icon -->
+    <path d="M860 440H780L760 420H700C689 420 680 429 680 440V560C680 571 689 580 700 580H860C871 580 880 571 880 560V460C880 449 871 440 860 440ZM860 560H700V440H754L774 460H860V560Z" fill="#1E3A8A"/>
+    <circle cx="780" cy="510" r="40" fill="#1E3A8A"/>
+    
+    <!-- Microphone Icon -->
+    <path d="M1040 420V500C1040 522 1022 540 1000 540C978 540 960 522 960 500V420C960 398 978 380 1000 380C1022 380 1040 398 1040 420ZM1080 500H1060C1060 533 1033 560 1000 560C967 560 940 533 940 500H920C920 538 950 570 990 575V620H1010V575C1050 570 1080 538 1080 500Z" fill="#1E3A8A"/>
+    
+    <!-- Lighting Icon -->
+    <path d="M1160 420H1140V380H1160V420ZM1220 440L1199 419L1213 405L1234 426L1220 440ZM1240 500V480H1280V500H1240ZM1199 581L1220 560L1234 574L1213 595L1199 581ZM1100 560L1121 581L1107 595L1086 574L1100 560ZM1080 480V500H1040V480H1080ZM1121 419L1100 440L1086 426L1107 405L1121 419ZM1150 540C1127 540 1108 521 1108 498C1108 475 1127 456 1150 456C1173 456 1192 475 1192 498C1192 521 1173 540 1150 540Z" fill="#1E3A8A"/>
+    
+    <!-- Text -->
+    <text x="960" y="680" font-family="Arial" font-weight="bold" font-size="48" fill="#1E3A8A" text-anchor="middle">
+        Professional Media Equipment
+    </text>
+    <text x="960" y="730" font-family="Arial" font-size="24" fill="#4B5563" text-anchor="middle">
+        High-quality cameras, microphones, and lighting equipment
+    </text>
+</svg> 
