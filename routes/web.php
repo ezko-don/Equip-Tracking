@@ -30,6 +30,7 @@ use App\Http\Controllers\TaskController;
 use App\Http\Controllers\Admin\NotificationController as AdminNotificationController;
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\MessageController;
+use App\Http\Controllers\FirstTimePasswordController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 
@@ -48,14 +49,19 @@ Route::post('/contact', [ContactController::class, 'send'])->name('contact.send'
 
 // Guest Routes
 Route::middleware('guest')->group(function () {
-    Route::get('register', [RegisteredUserController::class, 'create'])->name('register');
-    Route::post('register', [RegisteredUserController::class, 'store']);
+    // Removed registration routes - only admins can register users
     Route::get('login', [AuthenticatedSessionController::class, 'create'])->name('login');
     Route::post('login', [AuthenticatedSessionController::class, 'store']);
 });
 
+// First-time password change routes
+Route::middleware('auth')->group(function () {
+    Route::get('/change-password', [FirstTimePasswordController::class, 'showChangePasswordForm'])->name('password.change');
+    Route::post('/change-password', [FirstTimePasswordController::class, 'changePassword'])->name('password.change.store');
+});
+
 // Regular user routes (must be placed BEFORE admin routes)
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth', \App\Http\Middleware\CheckPasswordChanged::class])->group(function () {
     // User Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     
@@ -69,8 +75,14 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/create/{equipment?}', [BookingController::class, 'create'])->name('create');
         Route::post('/', [BookingController::class, 'store'])->name('store');
         Route::get('/{booking}', [BookingController::class, 'show'])->name('show');
+        Route::patch('/{booking}/approve', [BookingController::class, 'approve'])->name('approve');
+        Route::patch('/{booking}/reject', [BookingController::class, 'reject'])->name('reject');
         Route::patch('/{booking}/cancel', [BookingController::class, 'cancel'])->name('cancel');
-        Route::post('/return', [BookingController::class, 'return'])->name('return');
+        Route::patch('/{booking}/complete', [BookingController::class, 'complete'])->name('complete');
+        Route::patch('/{booking}/return', [BookingController::class, 'return'])->name('return');
+        Route::post('/{booking}/return', [BookingController::class, 'return']);
+        Route::delete('/clear-all', [BookingController::class, 'clearAll'])->name('clear-all');
+        Route::delete('/{booking}', [BookingController::class, 'destroy'])->name('destroy');
     });
 
     // User Profile
@@ -82,76 +94,60 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/profile/photo', [ProfileController::class, 'destroyPhoto'])->name('profile.photo.destroy');
 
     // Tasks Routes
-    Route::get('/tasks', [TaskController::class, 'index'])->name('tasks.index');
-    Route::post('/tasks', [TaskController::class, 'store'])->name('tasks.store');
-    Route::get('/tasks/create', [TaskController::class, 'create'])->name('tasks.create');
-    Route::get('/tasks/{task}/edit', [TaskController::class, 'edit'])->name('tasks.edit');
-    Route::patch('/tasks/{task}', [TaskController::class, 'update'])->name('tasks.update');
-    Route::delete('/tasks/{task}', [TaskController::class, 'destroy'])->name('tasks.destroy');
-    Route::get('/tasks/calendar', [TaskController::class, 'calendar'])->name('tasks.calendar');
+    Route::prefix('tasks')->name('tasks.')->group(function () {
+        Route::get('/', [TaskController::class, 'index'])->name('index');
+        Route::get('/calendar', [TaskController::class, 'calendar'])->name('calendar');
+        Route::post('/', [TaskController::class, 'store'])->name('store');
+        Route::get('/create', [TaskController::class, 'create'])->name('create');
+        Route::get('/{task}/edit', [TaskController::class, 'edit'])->name('edit');
+        Route::patch('/{task}', [TaskController::class, 'update'])->name('update');
+        Route::delete('/{task}', [TaskController::class, 'destroy'])->name('destroy');
+    });
 
-    // Regular User Routes
+    // Categories Routes
     Route::get('/categories', [CategoryController::class, 'index'])->name('categories.index');
     Route::get('/categories/{category}', [CategoryController::class, 'show'])->name('categories.show');
-    Route::delete('/bookings/clear-all', [BookingController::class, 'clearAll'])
-        ->name('bookings.clear-all');
-    Route::resource('bookings', BookingController::class);
-    Route::patch('/bookings/{booking}/cancel', [BookingController::class, 'cancel'])->name('bookings.cancel');
-    Route::patch('/bookings/{booking}/complete', [BookingController::class, 'complete'])->name('bookings.complete');
 
-    // Add Notification Routes
+    // Notifications Routes
     Route::prefix('notifications')->name('notifications.')->group(function () {
         Route::get('/', [NotificationController::class, 'index'])->name('index');
         Route::patch('/{notification}/mark-as-read', [NotificationController::class, 'markAsRead'])->name('mark-as-read');
         Route::post('/mark-all-as-read', [NotificationController::class, 'markAllAsRead'])->name('mark-all-as-read');
+        Route::get('/unread-count', [NotificationController::class, 'getUnreadCount'])->name('unread-count');
     });
 
-    // Admin booking routes
-    Route::prefix('admin')->name('admin.')->group(function () {
-        Route::patch('/bookings/{booking}/cancel', [Admin\BookingController::class, 'cancel'])->name('bookings.cancel');
+    // Messages Routes
+    Route::prefix('messages')->name('messages.')->group(function () {
+        Route::get('/', [MessageController::class, 'index'])->name('index');
+        Route::get('/inbox', [MessageController::class, 'inbox'])->name('inbox');
+        Route::get('/{message}', [MessageController::class, 'show'])->name('show');
+        Route::post('/{message}/reply', [MessageController::class, 'reply'])->name('reply');
+        Route::post('/send', [MessageController::class, 'send'])->name('send');
     });
 
-    // New delete route
-    Route::delete('/bookings/{booking}', [BookingController::class, 'destroy'])->name('bookings.destroy');
-
-    // New booking routes
-    Route::get('/bookings/create/{equipment?}', [BookingController::class, 'create'])->name('bookings.create');
-    Route::post('/bookings', [BookingController::class, 'store'])->name('bookings.store');
-
-    // Message routes
+    // API Routes
     Route::prefix('api')->group(function () {
         Route::get('/users/search', [MessageController::class, 'searchUsers']);
         Route::get('/messages', [MessageController::class, 'getMessages']);
         Route::post('/messages', [MessageController::class, 'store']);
         Route::post('/messages/mark-read', [MessageController::class, 'markAsRead']);
+        Route::get('/messages/unread-count', [MessageController::class, 'getUnreadCount']);
     });
 
-    Route::prefix('messages')->name('messages.')->group(function () {
-        Route::get('/', [MessageController::class, 'index'])->name('index');
+    // Chat Routes
+    Route::prefix('chat')->group(function () {
+        Route::get('/messages', [ChatController::class, 'getMessages']);
+        Route::post('/send', [ChatController::class, 'sendMessage']);
     });
-
-    Route::get('/chat/messages', [ChatController::class, 'getMessages']);
-    Route::post('/chat/send', [ChatController::class, 'sendMessage']);
-
-    // Messages Routes
-    Route::get('/messages', [MessageController::class, 'index'])->name('messages.index');
-    Route::get('/api/messages', [MessageController::class, 'getMessages']);
-    Route::post('/api/messages', [MessageController::class, 'store']);
 });
 
-// Chat routes only for admin
-Route::middleware(['auth', 'admin'])->group(function () {
-    Route::get('/api/messages/{userId}', [ChatController::class, 'getMessages']);
-    Route::post('/api/messages', [ChatController::class, 'sendMessage']);
-});
-
-// Admin routes (keep existing admin routes)
-Route::middleware(['auth', 'is_admin'])
+// Admin routes
+Route::middleware(['auth', \App\Http\Middleware\CheckPasswordChanged::class, \App\Http\Middleware\AdminMiddleware::class])
     ->prefix('admin')
     ->name('admin.')
     ->group(function () {
         // Dashboard
-        Route::get('/', [AdminPanelController::class, 'index'])->name('dashboard');
+        Route::get('/', [AdminPanelController::class, 'index'])->name('home');
         Route::get('/dashboard', [AdminPanelController::class, 'index'])->name('dashboard');
         
         // Equipment Management
@@ -162,6 +158,7 @@ Route::middleware(['auth', 'is_admin'])
         // User Management
         Route::resource('users', UserController::class);
         Route::post('/users/{user}/toggle-role', [UserController::class, 'toggleRole'])->name('users.toggle-role');
+        Route::post('/users/{user}/reset-password', [UserController::class, 'resetPassword'])->name('users.reset-password');
 
         // Category Management
         Route::resource('categories', AdminCategoryController::class);
@@ -170,12 +167,18 @@ Route::middleware(['auth', 'is_admin'])
         Route::prefix('bookings')->name('bookings.')->group(function () {
             Route::get('/', [AdminBookingController::class, 'index'])->name('index');
             Route::get('/pending', [AdminBookingController::class, 'pending'])->name('pending');
+            Route::get('/pending-returns', [AdminBookingController::class, 'pendingReturns'])->name('pending-returns');
             Route::get('/{booking}', [AdminBookingController::class, 'show'])->name('show');
             Route::patch('/{booking}/approve', [AdminBookingController::class, 'approve'])->name('approve');
             Route::patch('/{booking}/reject', [AdminBookingController::class, 'reject'])->name('reject');
             Route::patch('/{booking}/cancel', [AdminBookingController::class, 'cancel'])->name('cancel');
             Route::patch('/{booking}/complete', [AdminBookingController::class, 'complete'])->name('complete');
             Route::patch('/{booking}/return', [AdminBookingController::class, 'return'])->name('return');
+            Route::post('/{booking}/return', [AdminBookingController::class, 'return']);
+            Route::get('/{booking}/return', function(\App\Models\Booking $booking) {
+                return redirect()->route('admin.bookings.show', $booking)
+                    ->with('error', 'Equipment returns must be submitted through the return form.');
+            });
             Route::delete('/{booking}', [AdminBookingController::class, 'destroy'])->name('destroy');
             Route::patch('/{booking}/approve-return', [AdminBookingController::class, 'approveReturn'])
                 ->name('approve-return');
@@ -210,14 +213,42 @@ Route::middleware(['auth', 'is_admin'])
             // Add other maintenance routes as needed
         });
 
+        // Task Management
+        Route::prefix('tasks')->name('tasks.')->group(function () {
+            Route::get('/', [TaskController::class, 'adminIndex'])->name('index'); 
+            Route::get('/calendar', [TaskController::class, 'adminCalendar'])->name('calendar');
+            Route::get('/{task}', [TaskController::class, 'show'])->name('show');
+            Route::get('/{task}/edit', [TaskController::class, 'edit'])->name('edit');
+            Route::patch('/{task}', [TaskController::class, 'update'])->name('update');
+            Route::delete('/{task}', [TaskController::class, 'destroy'])->name('destroy');
+        });
+
+        // Debug route for testing
+        Route::get('/debug/approve-return/{booking}', function(App\Models\Booking $booking) {
+            return app()->make(App\Http\Controllers\Admin\BookingController::class)->approveReturn($booking);
+        })->name('debug.approve-return');
+
         // Add these new routes
         Route::get('/notifications', [AdminNotificationController::class, 'index'])->name('notifications.index');
         Route::post('/notifications/{id}/mark-as-read', [AdminNotificationController::class, 'markAsRead'])->name('notifications.markAsRead');
         Route::post('/notifications/mark-all-as-read', [AdminNotificationController::class, 'markAllAsRead'])->name('notifications.markAllAsRead');
         Route::get('/notifications/unread-count', [AdminNotificationController::class, 'getUnreadCount']);
+
+        // Add messaging routes for admins
+        Route::get('/messages', [MessageController::class, 'index'])->name('messages.index');
+        Route::get('/messages/user/{user}', [MessageController::class, 'showConversation'])->name('messages.conversation');
+
+        // Add message count route
+        Route::get('/messages/unread-count', [MessageController::class, 'getUnreadCount']);
     });
 
-    // Add message count route
-    Route::get('/api/messages/unread-count', [MessageController::class, 'getUnreadCount']);
+// Add this if it doesn't exist already
+Route::get('/messages', function () {
+    return view('messages.index');
+})->middleware(['auth'])->name('messages.index');
+
+Route::post('/messages/send', 'App\Http\Controllers\MessageController@send')
+    ->middleware(['auth'])
+    ->name('messages.send');
 
 require __DIR__.'/auth.php';

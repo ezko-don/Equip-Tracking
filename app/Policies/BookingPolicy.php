@@ -92,6 +92,20 @@ class BookingPolicy
     }
 
     /**
+     * Determine whether the user can return equipment.
+     */
+    public function return(User $user, Booking $booking): bool
+    {
+        // Allow admins to mark any equipment as returned
+        if ($user->isAdmin()) {
+            return true;
+        }
+        
+        // Allow users to return their own approved bookings regardless of time
+        return $user->id === $booking->user_id && $booking->isApproved();
+    }
+
+    /**
      * Determine whether the user can clear all their bookings.
      */
     public function clearAll(User $user): bool

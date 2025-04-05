@@ -1,4 +1,4 @@
-<nav x-data="{ open: false, activeDropdown: null }" class="bg-gradient-to-r from-blue-800 to-indigo-900 border-b border-gray-200 shadow-lg">
+<nav x-data="{ open: false, activeDropdown: null }" class="bg-gradient-to-r from-blue-800 to-indigo-900 border-b border-gray-200 shadow-lg relative z-10">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between h-20">
             <!-- Left Side -->
@@ -123,7 +123,7 @@
                     </a>
 
                     <!-- Messages -->
-                    <x-nav-link :href="route('messages.index')" :active="request()->routeIs('messages.index')">
+                    <x-nav-link :href="route('messages.inbox')" :active="request()->routeIs('messages.*')">
                         {{ __('Messages') }}
                     </x-nav-link>
                 </div>
@@ -152,14 +152,12 @@
                                 {{ __('Profile') }}
                             </x-dropdown-link>
 
-                            <form method="POST" action="{{ route('logout') }}">
+                            <form action="{{ route('logout') }}" method="POST" id="nav-logout-form">
                                 @csrf
-                                <x-dropdown-link :href="route('logout')"
-                                        onclick="event.preventDefault(); this.closest('form').submit();"
-                                        class="dropdown-item text-red-600 hover:text-red-700 hover:bg-red-50">
+                                <button type="submit" class="flex items-center px-4 py-2 w-full text-left text-sm text-red-600 hover:text-red-700 hover:bg-red-50">
                                     <x-heroicon-o-logout class="w-5 h-5 mr-2"/>
                                     {{ __('Log Out') }}
-                                </x-dropdown-link>
+                                </button>
                             </form>
                         </x-slot>
                     </x-dropdown>
@@ -176,7 +174,7 @@
     </div>
 
     <!-- Mobile menu -->
-    <div x-show="open" x-cloak class="lg:hidden">
+    <div x-show="open" x-cloak class="lg:hidden absolute w-full bg-blue-900 z-50">
         <div class="pt-2 pb-3 space-y-1">
             <!-- Mobile navigation items -->
             <a href="{{ route('admin.dashboard') }}" class="mobile-nav-item">
@@ -302,9 +300,21 @@
 
     .mobile-dropdown-menu[x-show] {
         @apply transform opacity-100 scale-100 transition-all duration-100 ease-in;
+        display: block !important;
+    }
+    
+    /* Fix for mobile menu display */
+    .mobile-dropdown-menu {
+        position: relative !important;
+        z-index: 60 !important;
+    }
+    
+    /* Ensure mobile menu is visible */
+    .lg\:hidden[x-show] {
+        display: block !important;
     }
 
     [x-cloak] {
         display: none !important;
     }
-</style> 
+</style>

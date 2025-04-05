@@ -7,9 +7,10 @@
             <div class="p-6 text-gray-900">
                 <div class="flex justify-between items-center mb-6">
                     <h1 class="text-2xl font-semibold">Reports</h1>
-                    <a href="{{ route('admin.reports.generate') }}" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                    <button type="button" onclick="scrollToReportForm()" 
+                            class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
                         Generate New Report
-                    </a>
+                    </button>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -42,7 +43,7 @@
                                     Equipment Usage Report
                                 </dt>
                                 <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                                    <form action="{{ route('admin.reports.reports.generate') }}" method="POST" class="inline">
+                                    <form action="{{ route('admin.reports.generate') }}" method="POST" class="inline">
                                         @csrf
                                         <input type="hidden" name="report_type" value="equipment-usage">
                                         <input type="hidden" name="format" value="pdf">
@@ -92,7 +93,7 @@
                     </div>
                 </div>
 
-                <form action="{{ route('admin.reports.generate') }}" method="POST" class="space-y-4">
+                <form action="{{ route('admin.reports.generate') }}" method="POST" class="space-y-4" id="reportGenerationForm">
                     @csrf
                     
                     @if ($errors->any())
@@ -162,6 +163,43 @@
                 console.error('Form method must be POST');
             }
         });
+    });
+
+    // Function to scroll to the report generation form
+    function scrollToReportForm() {
+        const form = document.getElementById('reportGenerationForm');
+        if (form) {
+            form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            
+            // Set focus on the first form field and add a highlight effect
+            const firstField = form.querySelector('select, input');
+            if (firstField) {
+                firstField.focus();
+                
+                // Add temporary highlight effect
+                form.classList.add('ring-2', 'ring-blue-500', 'ring-opacity-50');
+                setTimeout(() => {
+                    form.classList.remove('ring-2', 'ring-blue-500', 'ring-opacity-50');
+                }, 2000);
+            }
+        }
+    }
+
+    // Initialize form with today's date
+    window.addEventListener('DOMContentLoaded', () => {
+        const today = new Date();
+        const startDate = document.getElementById('start_date');
+        const endDate = document.getElementById('end_date');
+        
+        if (startDate && !startDate.value) {
+            const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+            startDate.value = firstDay.toISOString().split('T')[0];
+        }
+        
+        if (endDate && !endDate.value) {
+            const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+            endDate.value = lastDay.toISOString().split('T')[0];
+        }
     });
 </script>
 @endpush 

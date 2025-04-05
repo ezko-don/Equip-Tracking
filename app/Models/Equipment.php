@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\DB;
 use App\Notifications\EquipmentConditionUpdated;
+use Carbon\Carbon;
 
 class Equipment extends Model
 {
@@ -33,6 +34,7 @@ class Equipment extends Model
 
     // Status constants
     const STATUS_AVAILABLE = 'available';
+    const STATUS_UNAVAILABLE = 'unavailable';
     const STATUS_IN_USE = 'in_use';
     const STATUS_MAINTENANCE = 'maintenance';
     const STATUS_RETIRED = 'retired';
@@ -72,6 +74,7 @@ class Equipment extends Model
     {
         return [
             self::STATUS_AVAILABLE,
+            self::STATUS_UNAVAILABLE,
             self::STATUS_IN_USE,
             self::STATUS_MAINTENANCE,
             self::STATUS_RETIRED,
@@ -110,9 +113,89 @@ class Equipment extends Model
         return $this->bookings()->where('status', 'active');
     }
 
-    public function isAvailable(): bool
+    public function getIsAvailableAttribute(): bool
     {
-        return $this->status === 'available' && $this->condition === 'good';
+        return $this->status === 'available' && !$this->hasActiveBooking();
+    }
+
+    public function hasActiveBooking(): bool
+    {
+        $now = Carbon::now();
+        return $this->bookings()
+            ->where('status', 'approved')
+            ->where(function ($query) use ($now) {
+                $query->where(function ($q) use ($now) {
+                    $q->where('start_time', '<=', $now)
+                      ->where('end_time', '>=', $now);
+                });
+            })
+            ->exists();
+    }
+
+    public function hasUpcomingBooking(): bool
+    {
+        $now = Carbon::now();
+        return $this->bookings()
+            ->where('status', 'approved')
+            ->where('start_time', '>', $now)
+            ->exists();
+    }
+
+    public function getNextAvailableDateAttribute(): ?string
+    {
+        $latestBooking = $this->bookings()
+            ->where('status', 'approved')
+            ->where('end_time', '>', Carbon::now())
+            ->orderBy('end_time', 'desc')
+            ->first();
+
+        return $latestBooking ? $latestBooking->end_time->format('M d, Y H:i') : null;
+    }
+
+    public function getCurrentBookingAttribute(): ?object
+    {
+        $now = Carbon::now();
+        return $this->bookings()
+            ->where('status', 'approved')
+            ->where('start_time', '<=', $now)
+            ->where('end_time', '>=', $now)
+            ->first();
+    }
+
+    public function getDisplayStatusAttribute(): string
+    {
+        if ($this->hasActiveBooking()) {
+            return 'Booked';
+        }
+        
+        if ($this->hasUpcomingBooking()) {
+            return 'Reserved';
+        }
+
+        return match($this->status) {
+            'available' => 'Available',
+            'maintenance' => 'Under Maintenance',
+            'damaged' => 'Damaged',
+            default => ucfirst($this->status)
+        };
+    }
+
+    public function getStatusBadgeClassAttribute(): string
+    {
+        if ($this->hasActiveBooking()) {
+            return 'bg-yellow-100 text-yellow-800';
+        }
+        
+        if ($this->hasUpcomingBooking()) {
+            return 'bg-blue-100 text-blue-800';
+        }
+
+        return match($this->status) {
+            'available' => 'bg-green-100 text-green-800',
+            'maintenance' => 'bg-orange-100 text-orange-800',
+            'damaged' => 'bg-red-100 text-red-800',
+            default => 'bg-gray-100 text-gray-800'
+        };
     }
 
     public function updateStatus(string $status): void
@@ -188,7 +271,7 @@ class Equipment extends Model
      */
     public function maintenanceLogs(): HasMany
     {
-        return $this->hasMany(EquipmentMaintenanceLog::class);
+        return $this->hasMany(Maintenance::class);
     }
 
     /**
@@ -198,15 +281,17 @@ class Equipment extends Model
     {
         return $this->maintenanceLogs()
             ->where('status', 'scheduled')
-            ->orderBy('scheduled_date');
+            ->where('scheduled_date', '>=', now());
     }
 
     /**
-     * Get the next scheduled maintenance date.
+     * Get the next maintenance date.
      */
     public function getNextMaintenanceDateAttribute()
     {
-        return $this->scheduledMaintenance()->first()?->scheduled_date;
+        return $this->scheduledMaintenance()
+            ->orderBy('scheduled_date', 'asc')
+            ->value('scheduled_date');
     }
 
     /**
@@ -219,16 +304,20 @@ class Equipment extends Model
             ->sum('cost');
     }
 
-    public function isAvailableForPeriod($startDate, $endDate, $excludeBookingId = null): bool
+    public function isAvailableForPeriod($startTime, $endTime, $excludeBookingId = null): bool
     {
+        if ($this->status !== 'available') {
+            return false;
+        }
+
         $query = $this->bookings()
             ->where('status', 'approved')
-            ->where(function ($query) use ($startDate, $endDate) {
-                $query->whereBetween('start_date', [$startDate, $endDate])
-                    ->orWhereBetween('end_date', [$startDate, $endDate])
-                    ->orWhere(function ($query) use ($startDate, $endDate) {
-                        $query->where('start_date', '<=', $startDate)
-                            ->where('end_date', '>=', $endDate);
+            ->where(function ($query) use ($startTime, $endTime) {
+                $query->whereBetween('start_time', [$startTime, $endTime])
+                    ->orWhereBetween('end_time', [$startTime, $endTime])
+                    ->orWhere(function ($query) use ($startTime, $endTime) {
+                        $query->where('start_time', '<=', $startTime)
+                            ->where('end_time', '>=', $endTime);
                     });
             });
 
@@ -236,12 +325,7 @@ class Equipment extends Model
             $query->where('id', '!=', $excludeBookingId);
         }
 
-        return $query->doesntExist();
-    }
-
-    public function maintenances()
-    {
-        return $this->hasMany(Maintenance::class);
+        return !$query->exists();
     }
 
     public function isAvailableForUser(?User $user = null): bool
@@ -276,8 +360,17 @@ class Equipment extends Model
 
     public function getImageUrlAttribute()
     {
-        return $this->image_path
-            ? asset('storage/' . $this->image_path)
+        return $this->image
+            ? asset('storage/' . $this->image)
             : null;
+    }
+
+    public function getUpcomingBookingsAttribute(): object
+    {
+        return $this->bookings()
+            ->where('status', 'approved')
+            ->where('start_time', '>', Carbon::now())
+            ->orderBy('start_time', 'asc')
+            ->get();
     }
 }

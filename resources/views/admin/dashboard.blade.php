@@ -35,7 +35,8 @@
     <!-- Stats Cards -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <!-- Total Equipment -->
-        <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg p-6 text-white">
+        <a href="{{ route('admin.equipment.index') }}" class="transition-all duration-300 hover:scale-105">
+        <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg p-6 text-white cursor-pointer">
             <div class="flex justify-between items-center">
                 <div>
                     <p class="text-blue-100">Total Equipment</p>
@@ -48,9 +49,11 @@
                 </div>
             </div>
         </div>
+        </a>
 
         <!-- Available Equipment -->
-        <div class="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl shadow-lg p-6 text-white">
+        <a href="{{ route('admin.equipment.index', ['status' => 'available']) }}" class="transition-all duration-300 hover:scale-105">
+        <div class="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl shadow-lg p-6 text-white cursor-pointer">
             <div class="flex justify-between items-center">
                 <div>
                     <p class="text-emerald-100">Available Equipment</p>
@@ -63,9 +66,11 @@
                 </div>
             </div>
         </div>
+        </a>
 
         <!-- Pending Bookings -->
-        <div class="bg-gradient-to-br from-amber-500 to-amber-600 rounded-xl shadow-lg p-6 text-white">
+        <a href="{{ route('admin.bookings.pending') }}" class="transition-all duration-300 hover:scale-105">
+        <div class="bg-gradient-to-br from-amber-500 to-amber-600 rounded-xl shadow-lg p-6 text-white cursor-pointer">
             <div class="flex justify-between items-center">
                 <div>
                     <p class="text-amber-100">Pending Bookings</p>
@@ -78,9 +83,11 @@
                 </div>
             </div>
         </div>
+        </a>
 
         <!-- Total Users -->
-        <div class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-lg p-6 text-white">
+        <a href="{{ route('admin.users.index') }}" class="transition-all duration-300 hover:scale-105">
+        <div class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-lg p-6 text-white cursor-pointer">
             <div class="flex justify-between items-center">
                 <div>
                     <p class="text-purple-100">Total Users</p>
@@ -93,6 +100,7 @@
                 </div>
             </div>
         </div>
+        </a>
     </div>
 
     <!-- Quick Actions -->

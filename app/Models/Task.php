@@ -12,30 +12,42 @@ class Task extends Model
     use HasFactory;
 
     protected $fillable = [
-        'name',
+        'title',
         'description',
+        'location',
         'due_date',
         'priority',
         'status',
-        'user_id'
+        'equipment_id',
+        'assigned_to',
+        'created_by'
     ];
 
     protected $casts = [
         'due_date' => 'datetime',
+        'equipment_id' => 'integer',
+        'assigned_to' => 'integer',
+        'created_by' => 'integer'
     ];
 
     protected $attributes = [
         'status' => 'pending',
-        'priority' => 'medium'
+        'priority' => 'medium',
+        'description' => ''
     ];
 
-    public function user(): BelongsTo
+    public function equipment(): BelongsTo
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(Equipment::class);
     }
 
-    public function equipment(): BelongsToMany
+    public function assignedUser(): BelongsTo
     {
-        return $this->belongsToMany(Equipment::class);
+        return $this->belongsTo(User::class, 'assigned_to');
+    }
+
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
     }
 } 

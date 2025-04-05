@@ -9,6 +9,8 @@ use Illuminate\View\View;
 use Illuminate\Http\RedirectResponse;
 use App\Models\User;
 use App\Notifications\BookingStatusChanged;
+use App\Models\Equipment;
+use Illuminate\Support\Facades\DB;
 
 class BookingController extends Controller
 {
@@ -36,17 +38,64 @@ class BookingController extends Controller
         return view('admin.bookings.pending', compact('bookings'));
     }
 
-    public function approve(Booking $booking): RedirectResponse
+    public function approve(Request $request, Booking $booking): RedirectResponse
     {
-        if (!$booking->equipment->isAvailableForPeriod($booking->start_date, $booking->end_date, $booking->id)) {
+        if (!$booking->equipment->isAvailableForPeriod($booking->start_time, $booking->end_time, $booking->id)) {
             return back()->with('error', 'Equipment is not available for this period.');
         }
 
-        $booking->update(['status' => 'approved']);
-        
-        $booking->user->notify(new BookingStatusChanged($booking));
-        
-        return back()->with('success', 'Booking approved successfully.');
+        $request->validate([
+            'equipment_condition' => 'required|in:good,damaged,needs_maintenance',
+            'equipment_notes' => 'nullable|string|max:500'
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            // Update booking status
+            $booking->approve();
+            
+            // Update equipment condition and status
+            $equipment = $booking->equipment;
+            $equipment->condition = $request->equipment_condition;
+            
+            // If equipment is damaged or needs maintenance, update its status accordingly
+            if ($request->equipment_condition !== 'good') {
+                $equipment->status = match($request->equipment_condition) {
+                    'damaged' => 'damaged',
+                    'needs_maintenance' => 'maintenance',
+                    default => $equipment->status
+                };
+                
+                // Create maintenance record if needed
+                if ($request->equipment_condition === 'needs_maintenance') {
+                    $equipment->maintenanceLogs()->create([
+                        'type' => 'maintenance',
+                        'description' => 'Maintenance needed before lending. ' . $request->equipment_notes,
+                        'scheduled_date' => now(),
+                        'status' => 'pending'
+                    ]);
+                }
+            }
+            
+            // Save equipment condition notes
+            $booking->update([
+                'initial_condition' => $request->equipment_condition,
+                'initial_notes' => $request->equipment_notes
+            ]);
+            
+            $equipment->save();
+            
+            DB::commit();
+            
+            $booking->user->notify(new BookingStatusChanged($booking));
+            
+            return back()->with('success', 'Booking approved successfully with equipment condition update.');
+            
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error', 'Failed to approve booking: ' . $e->getMessage());
+        }
     }
 
     public function reject(Booking $booking): RedirectResponse
@@ -70,17 +119,50 @@ class BookingController extends Controller
         return back()->with('success', 'Booking has been marked as completed.');
     }
 
-    public function return(Booking $booking): RedirectResponse
+    public function return(Request $request, Booking $booking): RedirectResponse
     {
-        $booking->update([
-            'status' => 'returned',
-            'returned_at' => now()
+        $request->validate([
+            'equipment_condition' => 'required|in:good,damaged,needs_maintenance',
+            'return_notes' => 'nullable|string|max:500'
         ]);
-        
-        // Make the equipment available again
-        $booking->equipment->update(['status' => 'available']);
 
-        return back()->with('success', 'Equipment has been returned successfully.');
+        try {
+            DB::beginTransaction();
+
+            // Update the booking status
+            $booking->update([
+                'status' => 'completed',
+                'returned_at' => now(),
+                'return_condition' => $request->equipment_condition,
+                'return_notes' => $request->return_notes
+            ]);
+
+            // Update equipment status based on return condition
+            $equipment = $booking->equipment;
+            $equipment->status = match($request->equipment_condition) {
+                'good' => 'available',
+                'damaged' => 'damaged',
+                'needs_maintenance' => 'maintenance',
+                default => 'available'
+            };
+            $equipment->save();
+
+            // If equipment needs maintenance, create a maintenance record
+            if ($request->equipment_condition === 'needs_maintenance') {
+                $equipment->maintenanceLogs()->create([
+                    'type' => 'maintenance',
+                    'description' => 'Maintenance needed after return. ' . $request->return_notes,
+                    'scheduled_date' => now(),
+                    'status' => 'pending'
+                ]);
+            }
+
+            DB::commit();
+            return back()->with('success', 'Equipment has been returned successfully.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error', 'Failed to process equipment return: ' . $e->getMessage());
+        }
     }
 
     public function history()
@@ -102,19 +184,69 @@ class BookingController extends Controller
             ->with('success', 'Booking deleted successfully.');
     }
 
-    public function approveReturn(Booking $booking)
+    public function approveReturn(Request $request, Booking $booking): RedirectResponse
     {
-        $booking->update(['status' => 'completed']);
-        
-        // Update equipment status
-        $booking->equipment->update([
-            'status' => 'available',
-            'condition' => $booking->return_condition
+        $request->validate([
+            'equipment_condition' => 'required|in:good,damaged,needs_maintenance',
+            'equipment_notes' => 'nullable|string|max:500'
         ]);
 
-        // Notify user
-        $booking->user->notify(new BookingStatusChanged($booking));
+        try {
+            DB::beginTransaction();
+            
+            // Complete the booking
+            $booking->complete();
+            
+            // Update equipment condition and status
+            $equipment = $booking->equipment;
+            $equipment->condition = $request->equipment_condition;
+            
+            // If equipment is damaged or needs maintenance, update its status accordingly
+            if ($request->equipment_condition !== 'good') {
+                $equipment->status = match($request->equipment_condition) {
+                    'damaged' => 'damaged',
+                    'needs_maintenance' => 'maintenance',
+                    default => $equipment->status
+                };
+                
+                // Create maintenance record if needed
+                if ($request->equipment_condition === 'needs_maintenance') {
+                    $equipment->maintenanceLogs()->create([
+                        'type' => 'maintenance',
+                        'description' => 'Maintenance needed after return. ' . $request->equipment_notes,
+                        'scheduled_date' => now(),
+                        'status' => 'pending'
+                    ]);
+                }
+            }
+            
+            // Update return info
+            $booking->update([
+                'return_condition' => $request->equipment_condition,
+                'return_notes' => $request->equipment_notes,
+                'returned_at' => now()
+            ]);
+            
+            $equipment->save();
+            
+            DB::commit();
+            
+            return redirect()->route('admin.bookings.pending-returns')
+                ->with('success', 'Equipment return processed successfully');
+                
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error', 'Failed to process return: ' . $e->getMessage());
+        }
+    }
 
-        return back()->with('success', 'Return request approved successfully.');
+    public function pendingReturns()
+    {
+        $bookings = Booking::with(['user', 'equipment'])
+            ->where('status', 'pending_return')
+            ->latest()
+            ->paginate(10);
+
+        return view('admin.bookings.pending-returns', compact('bookings'));
     }
 } 

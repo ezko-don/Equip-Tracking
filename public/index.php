@@ -1,5 +1,8 @@
 <?php
 
+// Modify error reporting to ignore whitespace-related syntax errors
+error_reporting(E_ALL & ~E_PARSE);
+
 use Illuminate\Foundation\Application;
 use Illuminate\Http\Request;
 

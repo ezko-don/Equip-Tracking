@@ -46,8 +46,8 @@
             <h2 class="text-lg font-semibold text-gray-900 mb-4">Booking Details</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div class="space-y-3">
-                    <p><span class="font-medium">Start Date:</span> {{ $booking->start_date->format('Y-m-d H:i') }}</p>
-                    <p><span class="font-medium">End Date:</span> {{ $booking->end_date->format('Y-m-d H:i') }}</p>
+                    <p><span class="font-medium">Start Date:</span> {{ $booking->start_time->format('Y-m-d H:i') }}</p>
+                    <p><span class="font-medium">End Date:</span> {{ $booking->end_time->format('Y-m-d H:i') }}</p>
                     <p><span class="font-medium">Status:</span> 
                         <span class="px-2 py-1 text-sm rounded {{ $booking->status_badge_class }}">
                             {{ ucfirst($booking->status) }}

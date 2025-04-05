@@ -86,31 +86,71 @@ class ProfileController extends Controller
     public function updatePhoto(Request $request)
     {
         try {
+            \Log::info('Profile photo upload started');
+            
             $request->validate([
-                'photo' => ['required', 'image', 'max:153600'], // 150MB = 150 * 1024 KB
+                'photo' => ['required', 'image', 'mimes:jpeg,png,gif,webp,bmp,tiff', 'max:5120'], // 5MB max
             ]);
+
+            if (!$request->hasFile('photo') || !$request->file('photo')->isValid()) {
+                throw new \Exception('Invalid file upload');
+            }
 
             $user = auth()->user();
-
-            // Delete old photos if they exist
-            if ($user->profile_photo_path && Storage::disk('public')->exists($user->profile_photo_path)) {
-                Storage::disk('public')->delete($user->profile_photo_path);
-            }
-            if ($user->profile_photo && Storage::disk('public')->exists($user->profile_photo)) {
-                Storage::disk('public')->delete($user->profile_photo);
-            }
-
-            // Store new photo
-            $path = $request->file('photo')->store('profile-photos', 'public');
             
+            \Log::info('Uploading photo for user: ' . $user->id);
+
+            // Ensure the storage directory exists
+            $storage = Storage::disk('public');
+            if (!$storage->exists('profile-photos')) {
+                $storage->makeDirectory('profile-photos');
+                \Log::info('Created profile-photos directory');
+            }
+
+            // Delete old photo if it exists
+            if ($user->profile_photo_path && $storage->exists($user->profile_photo_path)) {
+                $storage->delete($user->profile_photo_path);
+                \Log::info('Deleted old profile photo: ' . $user->profile_photo_path);
+            }
+
+            // Store new photo with a unique name
+            $file = $request->file('photo');
+            $extension = $file->getClientOriginalExtension();
+            $fileName = 'profile-' . $user->id . '-' . time() . '.' . $extension;
+            
+            $path = $file->storeAs('profile-photos', $fileName, 'public');
+            
+            if (!$path) {
+                throw new \Exception('Failed to store the uploaded file.');
+            }
+            
+            \Log::info('New photo stored at: ' . $path);
+
             $user->update([
-                'profile_photo_path' => $path,
-                'profile_photo' => $path // Update both fields for compatibility
+                'profile_photo_path' => $path
             ]);
+
+            \Log::info('Profile photo updated successfully');
+
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json([
+                    'message' => 'Profile photo updated successfully',
+                    'path' => Storage::disk('public')->url($path)
+                ]);
+            }
 
             return redirect()->route('profile.index')
                 ->with('status', 'profile-photo-updated');
         } catch (\Exception $e) {
+            \Log::error('Profile photo upload failed: ' . $e->getMessage());
+            \Log::error($e->getTraceAsString());
+
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json([
+                    'message' => 'Failed to upload photo: ' . $e->getMessage()
+                ], 422);
+            }
+
             return redirect()->route('profile.index')
                 ->withErrors(['photo' => 'Failed to upload photo: ' . $e->getMessage()]);
         }

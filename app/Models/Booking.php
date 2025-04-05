@@ -23,7 +23,9 @@ class Booking extends Model
         'notes',
         'return_condition',
         'return_notes',
-        'returned_at'
+        'returned_at',
+        'initial_condition',
+        'initial_notes'
     ];
 
     protected $casts = [
@@ -47,7 +49,7 @@ class Booking extends Model
     public function approve()
     {
         $this->update(['status' => 'approved']);
-        $this->equipment->update(['status' => 'unavailable']);
+        $this->equipment->update(['status' => Equipment::STATUS_UNAVAILABLE]);
     }
 
     public function reject()
@@ -113,6 +115,7 @@ class Booking extends Model
             'approved' => 'bg-green-100 text-green-800',
             'rejected' => 'bg-red-100 text-red-800',
             'completed' => 'bg-blue-100 text-blue-800',
+            'pending_return' => 'bg-purple-100 text-purple-800',
             default => 'bg-gray-100 text-gray-800'
         };
     }
@@ -136,5 +139,10 @@ class Booking extends Model
         return $this->end_time instanceof \Carbon\Carbon 
             ? $this->end_time->format('H:i')
             : Carbon::parse($this->end_time)->format('H:i');
+    }
+
+    public function isPendingReturn(): bool
+    {
+        return $this->status === 'pending_return';
     }
 }

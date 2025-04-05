@@ -56,6 +56,41 @@
             <p class="text-gray-700">{{ $maintenance->description }}</p>
         </div>
 
+        @if($maintenance->receipt_path)
+            <div class="mt-8">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4">Receipt</h2>
+                <div class="border rounded-lg p-4 bg-gray-50">
+                    @php
+                        $extension = pathinfo($maintenance->receipt_path, PATHINFO_EXTENSION);
+                        $isPdf = strtolower($extension) === 'pdf';
+                    @endphp
+
+                    @if($isPdf)
+                        <div class="mb-2">
+                            <a href="{{ asset('storage/' . $maintenance->receipt_path) }}" 
+                               class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded inline-flex items-center"
+                               target="_blank">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                </svg>
+                                View PDF Receipt
+                            </a>
+                        </div>
+                        <embed src="{{ asset('storage/' . $maintenance->receipt_path) }}" 
+                               type="application/pdf" 
+                               width="100%" 
+                               height="500px"
+                               class="border">
+                    @else
+                        <img src="{{ asset('storage/' . $maintenance->receipt_path) }}" 
+                             alt="Maintenance Receipt" 
+                             class="max-w-full h-auto rounded shadow-sm">
+                    @endif
+                </div>
+            </div>
+        @endif
+
         @if($maintenance->notes)
             <div class="mt-8">
                 <h2 class="text-lg font-semibold text-gray-900 mb-4">Notes</h2>

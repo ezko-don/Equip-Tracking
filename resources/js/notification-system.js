@@ -3,33 +3,68 @@ document.addEventListener('alpine:init', () => {
         open: false,
         notifications: [],
         unreadCount: 0,
+        isAdmin: false,
 
         init() {
+            // Check if current user is admin based on URL path
+            this.isAdmin = window.location.pathname.includes('/admin');
             this.fetchNotifications();
+            this.fetchUnreadCount();
             this.startPolling();
         },
 
         async fetchNotifications() {
             try {
-                const response = await fetch('/admin/notifications');
+                // Use the right endpoint based on whether this is admin or user
+                const endpoint = this.isAdmin ? '/admin/notifications' : '/notifications';
+                const response = await fetch(endpoint);
+                
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                
                 const data = await response.json();
                 this.notifications = data;
-                this.unreadCount = data.length;
             } catch (error) {
                 console.error('Failed to fetch notifications:', error);
+            }
+        },
+        
+        async fetchUnreadCount() {
+            try {
+                // Use the right endpoint based on whether this is admin or user
+                const endpoint = this.isAdmin 
+                    ? '/admin/notifications/unread-count' 
+                    : '/notifications/unread-count';
+                    
+                const response = await fetch(endpoint);
+                
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                
+                const data = await response.json();
+                this.unreadCount = data.count;
+            } catch (error) {
+                console.error('Failed to fetch unread count:', error);
             }
         },
 
         async markAsRead(id) {
             try {
-                await fetch(`/admin/notifications/${id}/mark-as-read`, {
+                // Use the right endpoint based on whether this is admin or user
+                const endpoint = this.isAdmin 
+                    ? `/admin/notifications/${id}/mark-as-read` 
+                    : `/notifications/${id}/mark-as-read`;
+                    
+                await fetch(endpoint, {
                     method: 'POST',
                     headers: {
                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
                     },
                 });
                 this.notifications = this.notifications.filter(n => n.id !== id);
-                this.unreadCount = this.notifications.length;
+                this.fetchUnreadCount();
             } catch (error) {
                 console.error('Failed to mark notification as read:', error);
             }
@@ -37,7 +72,12 @@ document.addEventListener('alpine:init', () => {
 
         async markAllAsRead() {
             try {
-                await fetch('/admin/notifications/mark-all-as-read', {
+                // Use the right endpoint based on whether this is admin or user
+                const endpoint = this.isAdmin 
+                    ? '/admin/notifications/mark-all-as-read' 
+                    : '/notifications/mark-all-as-read';
+                    
+                await fetch(endpoint, {
                     method: 'POST',
                     headers: {
                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
@@ -57,7 +97,10 @@ document.addEventListener('alpine:init', () => {
         },
 
         startPolling() {
-            setInterval(() => this.fetchNotifications(), 60000); // Poll every minute
+            setInterval(() => {
+                this.fetchNotifications();
+                this.fetchUnreadCount();
+            }, 60000); // Poll every minute
         },
 
         handleNewNotification(notification) {

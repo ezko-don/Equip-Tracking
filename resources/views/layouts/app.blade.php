@@ -16,12 +16,6 @@
     <script src="https://cdn.jsdelivr.net/gh/alpinejs/alpine@v2.x.x/dist/alpine.min.js" defer></script>
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-    
-    <!-- FullCalendar -->
-    <link href='https://cdn.jsdelivr.net/npm/@fullcalendar/core@4.4.0/main.min.css' rel='stylesheet' />
-    <link href='https://cdn.jsdelivr.net/npm/@fullcalendar/daygrid@4.4.0/main.min.css' rel='stylesheet' />
-    <script src='https://cdn.jsdelivr.net/npm/@fullcalendar/core@4.4.0/main.min.js'></script>
-    <script src='https://cdn.jsdelivr.net/npm/@fullcalendar/daygrid@4.4.0/main.min.js'></script>
 
     <!-- Styles -->
     @stack('styles')
@@ -153,17 +147,14 @@
                                 </div>
 
                                 <div class="border-t border-gray-100">
-                                    <form method="POST" action="{{ route('logout') }}">
+                                    <form action="{{ route('logout') }}" method="POST" id="logout-form" class="inline">
                                         @csrf
-                                        <x-dropdown-link :href="route('logout')" 
-                                            class="flex items-center px-4 py-2 hover:bg-gray-100"
-                                            onclick="event.preventDefault(); this.closest('form').submit();"
-                                            as="button">
+                                        <button type="submit" class="flex items-center px-4 py-2 hover:bg-gray-100 w-full text-left">
                                             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 11-6 0v-1m6 0H9"/>
                                             </svg>
                                             {{ __('Log Out') }}
-                                        </x-dropdown-link>
+                                        </button>
                                     </form>
                                 </div>
                             </x-slot>
@@ -221,17 +212,22 @@
                             {{ __('Profile') }}
                         </x-responsive-nav-link>
 
-                        <!-- Authentication -->
-                        <form method="POST" action="{{ route('logout') }}">
+                        <x-responsive-nav-link :href="route('notifications.index')" class="flex items-center">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                            </svg>
+                            {{ __('Notifications') }}
+                        </x-responsive-nav-link>
+
+                        <!-- Authentication for mobile -->
+                        <form action="{{ route('logout') }}" method="POST" id="logout-form-mobile">
                             @csrf
-                            <x-responsive-nav-link :href="route('logout')" class="flex items-center"
-                                    onclick="event.preventDefault();
-                                                this.closest('form').submit();">
+                            <button type="submit" class="flex items-center w-full px-4 py-2 text-left">
                                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
                                 </svg>
                                 {{ __('Log Out') }}
-                            </x-responsive-nav-link>
+                            </button>
                         </form>
                     </div>
                 </div>
@@ -296,37 +292,7 @@
 
         <!-- Chat and Notification Icons -->
         @auth
-            <div class="fixed bottom-4 right-4 flex flex-col space-y-2">
-                <!-- Notifications Icon -->
-                <div class="relative">
-                    <a href="{{ route('notifications.index') }}" 
-                       class="flex items-center justify-center w-12 h-12 bg-white dark:bg-gray-800 rounded-full shadow-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-300 transform hover:scale-105">
-                        <svg class="w-6 h-6 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
-                        </svg>
-                        @if(isset($unreadNotifications) && $unreadNotifications > 0)
-                            <span class="absolute -top-1 -right-1 bg-red-500 text-white rounded-full text-xs px-2 py-1 min-w-[20px] text-center">
-                                {{ $unreadNotifications }}
-                            </span>
-                        @endif
-                    </a>
-                </div>
-
-                <!-- Messages Icon -->
-                <div class="relative">
-                    <a href="{{ route('messages.index') }}" 
-                       class="flex items-center justify-center w-12 h-12 bg-white dark:bg-gray-800 rounded-full shadow-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-300 transform hover:scale-105">
-                        <svg class="w-6 h-6 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path>
-                        </svg>
-                        @if(isset($unreadMessages) && $unreadMessages > 0)
-                            <span class="absolute -top-1 -right-1 bg-red-500 text-white rounded-full text-xs px-2 py-1 min-w-[20px] text-center">
-                                {{ $unreadMessages }}
-                            </span>
-                        @endif
-                    </a>
-                </div>
-            </div>
+            <x-chat-notification />
         @endauth
     </div>
 

@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('sender_id')->constrained('users')->onDelete('cascade');
             $table->foreignId('receiver_id')->constrained('users')->onDelete('cascade');
+            $table->string('subject');
             $table->text('content');
             $table->timestamp('read_at')->nullable();
             $table->timestamps();
@@ -28,4 +29,4 @@ return new class extends Migration
     {
         Schema::dropIfExists('messages');
     }
-};
+}; 

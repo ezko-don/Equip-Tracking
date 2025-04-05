@@ -9,7 +9,7 @@
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 bg-white border-b border-gray-200">
-                    <form action="{{ route('admin.maintenances.store') }}" method="POST" class="space-y-6">
+                    <form action="{{ route('admin.maintenances.store') }}" method="POST" class="space-y-6" enctype="multipart/form-data">
                         @csrf
 
                         <div>
@@ -63,6 +63,27 @@
                             <input type="number" name="cost" id="cost" step="0.01" min="0"
                                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
                             @error('cost')
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                        <!-- Receipt Upload Section -->
+                        <div>
+                            <label for="receipt" class="block text-sm font-medium text-gray-700">Upload Receipt (Image or PDF)</label>
+                            <div class="mt-1 flex items-center">
+                                <input type="file" name="receipt" id="receipt" 
+                                       accept=".jpg,.jpeg,.png,.pdf"
+                                       class="mt-1 block w-full text-sm text-gray-500
+                                              file:mr-4 file:py-2 file:px-4
+                                              file:rounded-md file:border-0
+                                              file:text-sm file:font-semibold
+                                              file:bg-indigo-50 file:text-indigo-700
+                                              hover:file:bg-indigo-100">
+                            </div>
+                            <p class="mt-1 text-sm text-gray-500">
+                                Upload receipt as image (JPG, JPEG, PNG) or PDF (max 5MB)
+                            </p>
+                            @error('receipt')
                                 <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                             @enderror
                         </div>

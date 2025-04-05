@@ -14,6 +14,18 @@
                            placeholder="Search equipment..." 
                            class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
                 </div>
+                
+                @if(auth()->user()->isAdmin())
+                <div class="ml-4">
+                    <a href="{{ route('equipment.create') }}" 
+                       class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                        </svg>
+                        Create New Equipment
+                    </a>
+                </div>
+                @endif
             </div>
 
             <!-- Equipment Grid -->
@@ -43,8 +55,8 @@
 
                             <!-- Status and Category Tags -->
                             <div class="flex flex-wrap gap-2 mb-3">
-                                <span class="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
-                                    Available
+                                <span class="px-2 py-1 text-xs font-medium rounded-full {{ $item->status_badge_class }}">
+                                    {{ $item->display_status }}
                                 </span>
                                 <span class="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
                                     {{ $item->category->name }}
@@ -55,6 +67,13 @@
                             <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
                                 {{ Str::limit($item->description, 100) }}
                             </p>
+                            
+                            @if(!$item->is_available && $item->hasActiveBooking())
+                                <p class="text-xs text-gray-500 mb-4">
+                                    <span class="font-medium">Available after:</span> 
+                                    {{ $item->next_available_date }}
+                                </p>
+                            @endif
 
                             <!-- Action Buttons -->
                             <div class="flex justify-between items-center mt-4">
@@ -62,13 +81,15 @@
                                    class="text-blue-600 hover:text-blue-800 text-sm font-medium">
                                     View Details →
                                 </a>
-                                <a href="{{ route('bookings.create', ['equipment' => $item->id]) }}" 
-                                   class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition-colors duration-200">
-                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                    </svg>
-                                    Book Now
-                                </a>
+                                @if($item->is_available)
+                                    <a href="{{ route('bookings.create', ['equipment' => $item->id]) }}" 
+                                       class="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-md transition-colors duration-200">
+                                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                        </svg>
+                                        Book Now
+                                    </a>
+                                @endif
                             </div>
                         </div>
                     </div>

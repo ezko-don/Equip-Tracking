@@ -27,55 +27,61 @@
             <!-- Statistics Cards -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                 <!-- Active Bookings -->
-                <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg transform hover:scale-[1.02] transition-all duration-300">
-                    <div class="p-6">
-                        <div class="flex items-center">
-                            <div class="bg-blue-100 dark:bg-blue-900 rounded-full p-3">
-                                <svg class="h-6 w-6 text-blue-600 dark:text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
-                                </svg>
-                            </div>
-                            <div class="ml-4">
-                                <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200">Active Bookings</h2>
-                                <p class="text-3xl font-bold text-blue-600 dark:text-blue-400">{{ $activeBookings }}</p>
+                <a href="{{ route('bookings.index', ['status' => 'approved']) }}" class="block">
+                    <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg transform hover:scale-[1.02] transition-all duration-300">
+                        <div class="p-6">
+                            <div class="flex items-center">
+                                <div class="bg-blue-100 dark:bg-blue-900 rounded-full p-3">
+                                    <svg class="h-6 w-6 text-blue-600 dark:text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                                    </svg>
+                                </div>
+                                <div class="ml-4">
+                                    <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200">Active Bookings</h2>
+                                    <p class="text-3xl font-bold text-blue-600 dark:text-blue-400">{{ $activeBookings }}</p>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
+                </a>
 
                 <!-- Pending Bookings -->
-                <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg transform hover:scale-[1.02] transition-all duration-300">
-                    <div class="p-6">
-                        <div class="flex items-center">
-                            <div class="bg-yellow-100 dark:bg-yellow-900 rounded-full p-3">
-                                <svg class="h-6 w-6 text-yellow-600 dark:text-yellow-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                </svg>
-                            </div>
-                            <div class="ml-4">
-                                <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200">Pending Bookings</h2>
-                                <p class="text-3xl font-bold text-yellow-600 dark:text-yellow-400">{{ $pendingBookings }}</p>
+                <a href="{{ route('bookings.index', ['status' => 'pending']) }}" class="block">
+                    <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg transform hover:scale-[1.02] transition-all duration-300">
+                        <div class="p-6">
+                            <div class="flex items-center">
+                                <div class="bg-yellow-100 dark:bg-yellow-900 rounded-full p-3">
+                                    <svg class="h-6 w-6 text-yellow-600 dark:text-yellow-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                </div>
+                                <div class="ml-4">
+                                    <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200">Pending Bookings</h2>
+                                    <p class="text-3xl font-bold text-yellow-600 dark:text-yellow-400">{{ $pendingBookings }}</p>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
+                </a>
 
                 <!-- Total Bookings -->
-                <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg transform hover:scale-[1.02] transition-all duration-300">
-                    <div class="p-6">
-                        <div class="flex items-center">
-                            <div class="bg-green-100 dark:bg-green-900 rounded-full p-3">
-                                <svg class="h-6 w-6 text-green-600 dark:text-green-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
-                                </svg>
-                            </div>
-                            <div class="ml-4">
-                                <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200">Total Bookings</h2>
-                                <p class="text-3xl font-bold text-green-600 dark:text-green-400">{{ $totalBookings }}</p>
+                <a href="{{ route('bookings.index') }}" class="block">
+                    <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg transform hover:scale-[1.02] transition-all duration-300">
+                        <div class="p-6">
+                            <div class="flex items-center">
+                                <div class="bg-green-100 dark:bg-green-900 rounded-full p-3">
+                                    <svg class="h-6 w-6 text-green-600 dark:text-green-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                                    </svg>
+                                </div>
+                                <div class="ml-4">
+                                    <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200">Total Bookings</h2>
+                                    <p class="text-3xl font-bold text-green-600 dark:text-green-400">{{ $totalBookings }}</p>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
+                </a>
             </div>
 
             <!-- Quick Actions -->

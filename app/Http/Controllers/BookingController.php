@@ -63,17 +63,17 @@ class BookingController extends Controller
                 'equipment_id' => 'required|exists:equipment,id',
                 'event_name' => 'required|string|max:255',
                 'location' => 'required|string|max:255',
-                'start_time' => 'required|date_format:Y-m-d H:i',
-                'end_time' => 'required|date_format:Y-m-d H:i|after:start_time',
-                'purpose' => 'required|string|max:1000'
+                'start_time' => 'required|date',
+                'end_time' => 'required|date|after:start_time',
+                'notes' => 'nullable|string|max:1000'
             ]);
 
             // Check if equipment exists and is available
             $equipment = Equipment::findOrFail($validated['equipment_id']);
             
-            // Parse dates
-            $startTime = Carbon::createFromFormat('Y-m-d H:i', $validated['start_time']);
-            $endTime = Carbon::createFromFormat('Y-m-d H:i', $validated['end_time']);
+            // Parse dates from datetime-local format
+            $startTime = Carbon::parse($validated['start_time']);
+            $endTime = Carbon::parse($validated['end_time']);
 
             // Check for conflicting bookings
             $conflicting = Booking::where('equipment_id', $equipment->id)
@@ -102,7 +102,7 @@ class BookingController extends Controller
                     'location' => $validated['location'],
                     'start_time' => $startTime,
                     'end_time' => $endTime,
-                    'purpose' => $validated['purpose'],
+                    'notes' => $validated['notes'] ?? null,
                     'status' => 'pending'
                 ]);
 
@@ -311,32 +311,35 @@ class BookingController extends Controller
         }
     }
 
-    public function return(Request $request)
+    public function return(Request $request, Booking $booking)
     {
-        $validated = $request->validate([
-            'equipment_id' => 'required|exists:equipment,id',
-            'return_time' => 'required|date',
-            'condition' => 'required|in:good,damaged',
-            'notes' => 'nullable|string'
-        ]);
+        try {
+            if (!auth()->user()->can('return', $booking)) {
+                return back()->with('error', 'You are not authorized to return this equipment.');
+            }
 
-        $booking = Booking::where('user_id', auth()->id())
-            ->where('equipment_id', $validated['equipment_id'])
-            ->where('status', 'approved')
-            ->firstOrFail();
+            $request->validate([
+                'equipment_condition' => 'required|in:good,damaged,needs_maintenance',
+                'return_notes' => 'nullable|string|max:500'
+            ]);
 
-        $booking->update([
-            'status' => 'pending_return',
-            'return_time' => $validated['return_time'],
-            'return_condition' => $validated['condition'],
-            'return_notes' => $validated['notes']
-        ]);
+            DB::transaction(function () use ($booking, $request) {
+                $booking->update([
+                    'status' => 'pending_return',
+                    'return_condition' => $request->equipment_condition,
+                    'return_notes' => $request->return_notes
+                ]);
+                
+                // Notify admin about the return request
+                User::where('role', 'admin')->get()->each(function ($admin) use ($booking) {
+                    $admin->notify(new BookingStatusChanged($booking));
+                });
+            });
 
-        // Notify admin
-        $admin = User::where('role', 'admin')->first();
-        $admin->notify(new BookingStatusChanged($booking));
-
-        return redirect()->back()->with('success', 'Return request submitted successfully.');
+            return back()->with('success', 'Return request submitted successfully. An administrator will verify the equipment return.');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Failed to submit return request: ' . $e->getMessage());
+        }
     }
 
     /**

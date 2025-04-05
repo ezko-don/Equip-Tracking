@@ -5,104 +5,144 @@
         </h2>
     </x-slot>
 
-    <div class="container mx-auto px-4 py-8">
-        <div class="max-w-6xl mx-auto">
-            <div class="bg-white rounded-lg shadow-lg overflow-hidden">
-                <div class="p-4 bg-gray-50 border-b">
-                    <h2 class="text-xl font-semibold text-gray-800">Messages</h2>
-                </div>
-                
-                <div x-data="messageSystem()" class="flex h-[600px]">
-                    <!-- Users List -->
-                    <div class="w-1/3 border-r bg-gray-50">
-                        <div class="p-4">
-                            <div class="relative">
-                                <input 
-                                    type="text" 
-                                    x-model="searchQuery" 
-                                    @input="searchUsers"
-                                    placeholder="Search users..." 
-                                    class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                >
-                            </div>
-                        </div>
-                        
-                        <!-- Users List -->
-                        <div class="overflow-y-auto h-[calc(100%-80px)]">
-                            <template x-for="user in users" :key="user.id">
-                                <div 
-                                    @click="selectUser(user)"
-                                    :class="{'bg-blue-50': selectedUser && selectedUser.id === user.id}"
-                                    class="p-4 border-b hover:bg-gray-100 cursor-pointer transition duration-150 ease-in-out"
-                                >
-                                    <div class="flex items-center">
-                                        <div class="flex-shrink-0">
-                                            <div class="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center">
-                                                <span x-text="user.name.charAt(0).toUpperCase()" class="text-lg font-semibold text-white"></span>
+    <div class="py-12">
+        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+            <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
+                <div class="p-6 text-gray-900 dark:text-gray-100">
+                    <div x-data="messageSystem()" class="space-y-6">
+                        <!-- User Selection Section -->
+                        <div>
+                            <h3 class="text-lg font-medium mb-4">Select Recipients</h3>
+                            <div class="flex flex-col space-y-4">
+                                <div class="relative">
+                                    <input 
+                                        type="text" 
+                                        x-model="searchQuery" 
+                                        @input="searchUsers"
+                                        placeholder="Search users..." 
+                                        class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
+                                    >
+                                </div>
+                                
+                                <!-- Selected Users Pills -->
+                                <div class="flex flex-wrap gap-2 mb-4" x-show="selectedUsers.length > 0">
+                                    <template x-for="user in selectedUsers" :key="user.id">
+                                        <div class="flex items-center bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-full px-3 py-1">
+                                            <span x-text="user.name" class="mr-1"></span>
+                                            <button @click="removeUser(user)" class="text-blue-500 hover:text-blue-700 dark:text-blue-300 dark:hover:text-blue-100">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </template>
+                                </div>
+                                
+                                <!-- User List -->
+                                <div class="border dark:border-gray-600 rounded-lg max-h-48 overflow-y-auto" x-show="searchResults.length > 0">
+                                    <template x-for="user in searchResults" :key="user.id">
+                                        <div 
+                                            class="p-3 border-b dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+                                            @click="toggleUser(user)"
+                                        >
+                                            <div class="flex items-center">
+                                                <div class="flex-shrink-0">
+                                                    <div class="w-8 h-8 rounded-full bg-purple-500 flex items-center justify-center">
+                                                        <span class="text-sm font-semibold text-white" x-text="user.name.charAt(0).toUpperCase()"></span>
+                                                    </div>
+                                                </div>
+                                                <div class="ml-3">
+                                                    <div class="font-medium" x-text="user.name"></div>
+                                                    <div class="text-sm text-gray-500 dark:text-gray-400" x-text="user.email"></div>
+                                                </div>
+                                                <div class="ml-auto">
+                                                    <input 
+                                                        type="checkbox" 
+                                                        :checked="isUserSelected(user)"
+                                                        @click.stop="toggleUser(user)"
+                                                        class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                                                    >
+                                                </div>
                                             </div>
                                         </div>
-                                        <div class="ml-4">
-                                            <div class="font-medium text-gray-900" x-text="user.name"></div>
-                                            <div class="text-sm text-gray-500" x-text="user.email"></div>
-                                        </div>
-                                    </div>
+                                    </template>
                                 </div>
-                            </template>
+                            </div>
                         </div>
-                    </div>
 
-                    <!-- Chat Area -->
-                    <div class="w-2/3 flex flex-col">
-                        <template x-if="selectedUser">
-                            <div class="p-4 bg-gray-50 border-b">
-                                <div class="flex items-center">
-                                    <div class="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center">
-                                        <span x-text="selectedUser.name.charAt(0).toUpperCase()" class="text-lg font-semibold text-white"></span>
+                        <!-- Message Composition - Now using a form -->
+                        <form action="{{ route('messages.send') }}" method="POST" id="messageForm">
+                            @csrf
+                            
+                            <!-- Hidden input for selected users -->
+                            <template x-for="user in selectedUsers" :key="user.id">
+                                <input type="hidden" name="receiver_ids[]" :value="user.id">
+                            </template>
+                            
+                            <div class="flex justify-between mb-6">
+                                <h3 class="text-lg font-semibold">Compose New Message</h3>
+                                <div>
+                                    <a href="{{ route('messages.inbox') }}" class="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600">View Inbox</a>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <div class="space-y-4">
+                                    <div>
+                                        <label for="subject" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Subject</label>
+                                        <input 
+                                            type="text" 
+                                            id="subject" 
+                                            name="subject"
+                                            x-model="subject"
+                                            class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
+                                            placeholder="Enter message subject..."
+                                            required
+                                        >
                                     </div>
-                                    <div class="ml-4">
-                                        <div class="font-medium text-gray-900" x-text="selectedUser.name"></div>
-                                        <div class="text-sm text-gray-500" x-text="selectedUser.email"></div>
+                                    
+                                    <div>
+                                        <label for="message" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Message</label>
+                                        <textarea 
+                                            id="message" 
+                                            name="content"
+                                            x-model="messageContent"
+                                            rows="5"
+                                            class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
+                                            placeholder="Type your message here..."
+                                            required
+                                        ></textarea>
+                                    </div>
+                                    
+                                    <div class="flex justify-end">
+                                        <button 
+                                            type="submit"
+                                            :disabled="!canSendMessage"
+                                            :class="{'bg-blue-500 hover:bg-blue-600': canSendMessage, 'bg-gray-400 cursor-not-allowed': !canSendMessage}"
+                                            class="px-4 py-2 text-white rounded-lg transition duration-150 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        >
+                                            Send Message
+                                        </button>
                                     </div>
                                 </div>
                             </div>
-                        </template>
-
-                        <div class="flex-1 overflow-y-auto p-4" id="chat-messages">
-                            <template x-for="message in messages" :key="message.id">
-                                <div :class="{'flex justify-end': message.sender_id === {{ auth()->id() }}, 'flex justify-start': message.sender_id !== {{ auth()->id() }}}">
-                                    <div 
-                                        :class="{'bg-blue-500 text-white': message.sender_id === {{ auth()->id() }}, 'bg-gray-200': message.sender_id !== {{ auth()->id() }}}"
-                                        class="max-w-[70%] rounded-lg px-4 py-2 my-2"
-                                    >
-                                        <div x-text="message.content"></div>
-                                        <div 
-                                            :class="{'text-blue-200': message.sender_id === {{ auth()->id() }}, 'text-gray-500': message.sender_id !== {{ auth()->id() }}}"
-                                            class="text-xs mt-1"
-                                            x-text="formatDate(message.created_at)"
-                                        ></div>
-                                    </div>
-                                </div>
-                            </template>
-                        </div>
-
-                        <!-- Message Input -->
-                        <div class="p-4 border-t">
-                            <form @submit.prevent="sendMessage" x-show="selectedUser" class="flex gap-2">
-                                <input 
-                                    type="text" 
-                                    x-model="newMessage" 
-                                    placeholder="Type your message..." 
-                                    class="flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    :disabled="!selectedUser"
-                                >
-                                <button 
-                                    type="submit" 
-                                    class="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-150 ease-in-out"
-                                    :disabled="!newMessage.trim()"
-                                >
-                                    Send
-                                </button>
-                            </form>
+                        </form>
+                        
+                        <!-- Status Messages -->
+                        @if(session('success'))
+                            <div class="p-4 rounded-lg bg-green-100 text-green-800">
+                                <p>{{ session('success') }}</p>
+                            </div>
+                        @endif
+                        
+                        @if(session('error'))
+                            <div class="p-4 rounded-lg bg-red-100 text-red-800">
+                                <p>{{ session('error') }}</p>
+                            </div>
+                        @endif
+                        
+                        <div x-show="statusMessage" class="p-4 rounded-lg" :class="{'bg-green-100 text-green-800': isSuccess, 'bg-red-100 text-red-800': !isSuccess}">
+                            <p x-text="statusMessage"></p>
                         </div>
                     </div>
                 </div>
@@ -114,130 +154,137 @@
     <script>
     function messageSystem() {
         return {
-            users: [],
-            messages: [],
-            selectedUser: null,
-            newMessage: '',
             searchQuery: '',
-            error: null,
+            searchResults: [],
+            selectedUsers: [],
+            subject: '',
+            messageContent: '',
+            statusMessage: '',
+            isSuccess: true,
             
             init() {
                 this.fetchUsers();
-                this.pollMessages();
+                
+                // Check for form submission via JavaScript as well (backup)
+                document.getElementById('messageForm').addEventListener('submit', (e) => {
+                    if (!this.canSendMessage) {
+                        e.preventDefault();
+                        this.showError('Please select at least one recipient and complete all fields');
+                    }
+                });
+            },
+
+            get canSendMessage() {
+                return this.selectedUsers.length > 0 && 
+                       this.subject.trim() !== '' && 
+                       this.messageContent.trim() !== '';
             },
 
             async fetchUsers() {
                 try {
-                    const response = await fetch('/api/users/search');
-                    if (!response.ok) throw new Error('Failed to fetch users');
+                    // Get CSRF token from the meta tag
+                    const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+                    
+                    const response = await fetch('/api/users/search', {
+                        headers: {
+                            'X-CSRF-TOKEN': token,
+                            'Accept': 'application/json'
+                        },
+                        credentials: 'same-origin' // Include cookies for session authentication
+                    });
+                    
+                    if (response.status === 401) {
+                        this.showError('You need to be logged in. Please refresh the page or log in again.');
+                        return;
+                    }
+                    
+                    if (!response.ok) {
+                        throw new Error('Failed to fetch users');
+                    }
+                    
                     const data = await response.json();
-                    this.users = data;
+                    this.searchResults = data;
                 } catch (error) {
                     console.error('Error fetching users:', error);
-                    this.error = 'Failed to load users. Please refresh the page.';
+                    this.showError('Failed to load users. Please refresh the page.');
                 }
             },
 
             async searchUsers() {
-                try {
-                    const response = await fetch(`/api/users/search?query=${encodeURIComponent(this.searchQuery)}`);
-                    if (!response.ok) throw new Error('Failed to search users');
-                    const data = await response.json();
-                    this.users = data;
-                } catch (error) {
-                    console.error('Error searching users:', error);
-                    this.error = 'Failed to search users. Please try again.';
+                if (this.searchQuery.trim() === '') {
+                    this.fetchUsers();
+                    return;
                 }
-            },
-
-            async selectUser(user) {
-                this.selectedUser = user;
-                await this.fetchMessages();
-                this.scrollToBottom();
-            },
-
-            async fetchMessages() {
-                if (!this.selectedUser) return;
-
+                
                 try {
-                    const response = await fetch(`/api/messages?user_id=${this.selectedUser.id}`);
-                    if (!response.ok) throw new Error('Failed to fetch messages');
-                    const data = await response.json();
-                    this.messages = data;
-                    this.scrollToBottom();
-                } catch (error) {
-                    console.error('Error fetching messages:', error);
-                    this.error = 'Failed to load messages. Please refresh the page.';
-                }
-            },
-
-            async sendMessage() {
-                if (!this.newMessage.trim() || !this.selectedUser) return;
-
-                try {
+                    // Get CSRF token from the meta tag
                     const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-                    if (!token) throw new Error('CSRF token not found');
-
-                    const response = await fetch('/api/messages', {
-                        method: 'POST',
+                    
+                    const response = await fetch(`/api/users/search?query=${encodeURIComponent(this.searchQuery)}`, {
                         headers: {
-                            'Content-Type': 'application/json',
                             'X-CSRF-TOKEN': token,
                             'Accept': 'application/json'
                         },
-                        body: JSON.stringify({
-                            receiver_id: this.selectedUser.id,
-                            content: this.newMessage
-                        })
+                        credentials: 'same-origin'
                     });
-
-                    if (!response.ok) {
-                        const data = await response.json();
-                        throw new Error(data.message || 'Failed to send message');
+                    
+                    if (response.status === 401) {
+                        this.showError('You need to be logged in. Please refresh the page or log in again.');
+                        return;
                     }
-
+                    
+                    if (!response.ok) {
+                        throw new Error('Failed to search users');
+                    }
+                    
                     const data = await response.json();
-                    this.messages.push(data);
-                    this.newMessage = '';
-                    this.scrollToBottom();
+                    this.searchResults = data;
                 } catch (error) {
-                    console.error('Error sending message:', error);
-                    this.error = error.message || 'Failed to send message. Please try again.';
-                    setTimeout(() => this.error = null, 3000);
+                    console.error('Error searching users:', error);
+                    this.showError('Failed to search users. Please try again.');
                 }
             },
 
-            pollMessages() {
-                setInterval(async () => {
-                    if (this.selectedUser) {
-                        await this.fetchMessages();
-                    }
-                }, 3000);
+            toggleUser(user) {
+                const index = this.selectedUsers.findIndex(u => u.id === user.id);
+                
+                if (index === -1) {
+                    this.selectedUsers.push(user);
+                } else {
+                    this.selectedUsers.splice(index, 1);
+                }
             },
 
-            scrollToBottom() {
+            removeUser(user) {
+                const index = this.selectedUsers.findIndex(u => u.id === user.id);
+                if (index !== -1) {
+                    this.selectedUsers.splice(index, 1);
+                }
+            },
+
+            isUserSelected(user) {
+                return this.selectedUsers.some(u => u.id === user.id);
+            },
+
+            showSuccess(message) {
+                this.statusMessage = message;
+                this.isSuccess = true;
+                this.clearStatusAfterDelay();
+            },
+
+            showError(message) {
+                this.statusMessage = message;
+                this.isSuccess = false;
+                this.clearStatusAfterDelay();
+            },
+
+            clearStatusAfterDelay() {
                 setTimeout(() => {
-                    const chatMessages = document.getElementById('chat-messages');
-                    if (chatMessages) {
-                        chatMessages.scrollTop = chatMessages.scrollHeight;
-                    }
-                }, 100);
-            },
-
-            formatDate(dateString) {
-                const date = new Date(dateString);
-                return date.toLocaleString();
+                    this.statusMessage = '';
+                }, 5000);
             }
         }
     }
     </script>
     @endpush
-
-    <!-- Add error notification -->
-    <div x-show="error" 
-         x-cloak 
-         class="fixed top-4 right-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded"
-         role="alert">
-        <span class="block sm:inline" x-text="error"></span>
-    </div>
 </x-app-layout> 

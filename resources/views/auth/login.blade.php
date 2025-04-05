@@ -109,10 +109,7 @@
 
                         <div class="text-center mt-6">
                             <p class="text-sm text-gray-600">
-                                {{ __('Don\'t have an account?') }}
-                                <a href="{{ route('register') }}" class="font-medium text-blue-900 hover:text-blue-700">
-                                    {{ __('Sign up') }}
-                                </a>
+                                {{ __('Contact your administrator if you need access to the system.') }}
                             </p>
                         </div>
                     </form>

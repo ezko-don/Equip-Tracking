@@ -10,7 +10,9 @@ use Illuminate\Http\Request;
 use Illuminate\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Storage;
-use PDF;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Http\Response;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class ReportController extends Controller
 {
@@ -18,7 +20,7 @@ class ReportController extends Controller
     {
         $equipmentCount = Equipment::count();
         $bookingCount = Booking::count();
-        $maintenanceCount = Maintenance::count();
+        $maintenanceCount = Maintenance::where('type', 'maintenance')->count();
 
         return view('admin.reports.index', compact('equipmentCount', 'bookingCount', 'maintenanceCount'));
     }
@@ -26,7 +28,7 @@ class ReportController extends Controller
     public function equipmentUsage(): View
     {
         $equipment = Equipment::withCount('bookings')
-            ->with(['category', 'maintenances'])
+            ->with(['category', 'maintenanceLogs'])
             ->get();
 
         return view('admin.reports.equipment-usage', compact('equipment'));
@@ -34,8 +36,9 @@ class ReportController extends Controller
 
     public function conditionHistory(): View
     {
-        $equipment = Equipment::with(['maintenances'])
-            ->get();
+        $equipment = Equipment::with(['maintenanceLogs' => function ($query) {
+            $query->orderBy('scheduled_date', 'desc');
+        }])->get();
 
         return view('admin.reports.condition-history', compact('equipment'));
     }
@@ -91,7 +94,7 @@ class ReportController extends Controller
             ->with('success', 'Report generated successfully.');
     }
 
-    public function download(string $type): \Symfony\Component\HttpFoundation\BinaryFileResponse
+    public function download(string $type): Response|RedirectResponse
     {
         $params = session('report_params');
         
@@ -107,8 +110,13 @@ class ReportController extends Controller
         $filename = "{$type}-report-" . now()->format('Y-m-d') . ".{$format}";
 
         if ($format === 'pdf') {
-            $pdf = PDF::loadView("admin.reports.{$type}-pdf", $data);
-            return $pdf->download($filename);
+            try {
+                $pdf = Pdf::loadView("admin.reports.{$type}-pdf", $data);
+                return $pdf->download($filename);
+            } catch (\Exception $e) {
+                \Log::error('PDF Generation Error: ' . $e->getMessage());
+                return back()->with('error', 'Failed to generate PDF report. Please try again.');
+            }
         } else {
             // Handle Excel export
             // You'll need to implement Excel export logic here
@@ -122,15 +130,18 @@ class ReportController extends Controller
             case 'equipment-usage':
                 return [
                     'equipment' => Equipment::withCount(['bookings' => function ($query) use ($startDate, $endDate) {
-                        $query->whereBetween('start_date', [$startDate, $endDate]);
-                    }])->with(['category', 'maintenances'])->get(),
+                        $query->whereBetween('start_time', [$startDate, $endDate]);
+                    }])->with(['category', 'maintenanceLogs' => function ($query) use ($startDate, $endDate) {
+                        $query->whereBetween('scheduled_date', [$startDate, $endDate]);
+                    }])->get(),
                     'start_date' => $startDate,
                     'end_date' => $endDate
                 ];
             case 'condition-history':
                 return [
-                    'equipment' => Equipment::with(['maintenances' => function ($query) use ($startDate, $endDate) {
-                        $query->whereBetween('maintenance_date', [$startDate, $endDate]);
+                    'equipment' => Equipment::with(['maintenanceLogs' => function ($query) use ($startDate, $endDate) {
+                        $query->whereBetween('scheduled_date', [$startDate, $endDate])
+                            ->orderBy('scheduled_date', 'desc');
                     }])->get(),
                     'start_date' => $startDate,
                     'end_date' => $endDate
@@ -139,7 +150,7 @@ class ReportController extends Controller
                 return [
                     'equipment' => Equipment::with(['bookings' => function ($query) use ($startDate, $endDate) {
                         $query->where('status', 'approved')
-                            ->whereBetween('start_date', [$startDate, $endDate]);
+                            ->whereBetween('start_time', [$startDate, $endDate]);
                     }])->get(),
                     'start_date' => $startDate,
                     'end_date' => $endDate
@@ -147,7 +158,7 @@ class ReportController extends Controller
             case 'booking-statistics':
                 return [
                     'bookings' => Booking::with(['equipment', 'user'])
-                        ->whereBetween('start_date', [$startDate, $endDate])
+                        ->whereBetween('start_time', [$startDate, $endDate])
                         ->get(),
                     'start_date' => $startDate,
                     'end_date' => $endDate

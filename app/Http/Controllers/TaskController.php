@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Task;
 use App\Models\Equipment;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -23,41 +24,24 @@ class TaskController extends Controller
         return view('tasks.create', compact('equipment'));
     }
 
-    public function store(Request $request): \Illuminate\Http\JsonResponse
+    public function store(Request $request)
     {
         $validated = $request->validate([
             'title' => 'required|string|max:255',
-            'description' => 'nullable|string',
+            'location' => 'required|string|max:255',
             'due_date' => 'required|date',
             'priority' => 'required|in:low,medium,high',
-            'status' => 'required|in:pending,in_progress,completed',
-            'equipment' => 'nullable|array',
-            'equipment.*' => 'exists:equipment,id'
+            'equipment_id' => 'nullable|exists:equipment,id',
         ]);
 
-        $task = Auth::user()->tasks()->create([
-            'name' => $validated['title'],
-            'description' => $validated['description'] ?? null,
-            'due_date' => $validated['due_date'],
-            'priority' => $validated['priority'],
-            'status' => $validated['status']
+        $task = Task::create([
+            ...$validated,
+            'status' => 'pending',
+            'created_by' => Auth::id(),
+            'assigned_to' => Auth::id(), // Assign to self by default
         ]);
 
-        if (isset($validated['equipment'])) {
-            $task->equipment()->attach($validated['equipment']);
-        }
-
-        $task->load('equipment');
-
-        return response()->json([
-            'id' => $task->id,
-            'title' => $task->name,
-            'description' => $task->description,
-            'start' => $task->due_date->toISOString(),
-            'priority' => $task->priority,
-            'status' => $task->status,
-            'equipment' => $task->equipment
-        ]);
+        return redirect()->back()->with('success', 'Task created successfully');
     }
 
     /**
@@ -65,14 +49,21 @@ class TaskController extends Controller
      */
     public function edit(Task $task)
     {
-        $equipment = Equipment::where('status', 'available')->get();
-        $taskEquipment = $task->equipment->pluck('id')->toArray();
-        
-        return view('tasks.edit', [
-            'task' => $task,
-            'equipment' => $equipment,
-            'taskEquipment' => $taskEquipment
-        ]);
+        // Check if this is an admin context or user context
+        if (request()->is('admin*')) {
+            $users = User::all();
+            $equipment = Equipment::all();
+            return view('admin.tasks.edit', compact('task', 'users', 'equipment'));
+        } else {
+            $equipment = Equipment::where('status', 'available')->get();
+            $taskEquipment = $task->equipment->pluck('id')->toArray();
+            
+            return view('tasks.edit', [
+                'task' => $task,
+                'equipment' => $equipment,
+                'taskEquipment' => $taskEquipment
+            ]);
+        }
     }
 
     /**
@@ -80,33 +71,31 @@ class TaskController extends Controller
      */
     public function update(Request $request, Task $task)
     {
-        $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'due_date' => 'required|date',
-            'priority' => 'required|in:low,medium,high',
-            'status' => 'required|in:pending,in_progress,completed',
-            'equipment' => 'nullable|array',
-            'equipment.*' => 'exists:equipment,id'
-        ]);
+        // Check if this is an admin context or user context
+        if (request()->is('admin*')) {
+            // Admin update - validate all fields
+            $validated = $request->validate([
+                'title' => 'required|string|max:255',
+                'location' => 'required|string|max:255',
+                'description' => 'nullable|string',
+                'due_date' => 'required|date',
+                'priority' => 'required|in:low,medium,high',
+                'status' => 'required|in:pending,in_progress,completed',
+                'equipment_id' => 'nullable|exists:equipment,id',
+                'assigned_to' => 'nullable|exists:users,id',
+            ]);
 
-        $task->update([
-            'title' => $validated['title'],
-            'description' => $validated['description'],
-            'due_date' => $validated['due_date'],
-            'priority' => $validated['priority'],
-            'status' => $validated['status']
-        ]);
-
-        // Sync equipment
-        if (isset($validated['equipment'])) {
-            $task->equipment()->sync($validated['equipment']);
+            $task->update($validated);
+            return redirect()->route('admin.tasks.index')->with('success', 'Task updated successfully');
         } else {
-            $task->equipment()->detach();
-        }
+            // User update - only allow status update
+            $validated = $request->validate([
+                'status' => 'required|in:pending,in_progress,completed',
+            ]);
 
-        return redirect()->route('tasks.index')
-            ->with('success', 'Task updated successfully.');
+            $task->update($validated);
+            return redirect()->back()->with('success', 'Task status updated successfully');
+        }
     }
 
     /**
@@ -114,11 +103,8 @@ class TaskController extends Controller
      */
     public function destroy(Task $task)
     {
-        $task->equipment()->detach();
         $task->delete();
-
-        return redirect()->route('tasks.index')
-            ->with('success', 'Task deleted successfully.');
+        return redirect()->back()->with('success', 'Task deleted successfully');
     }
 
     public function updateStatus(Request $request, Task $task): RedirectResponse
@@ -140,13 +126,20 @@ class TaskController extends Controller
             ->with('equipment')
             ->get()
             ->map(function ($task) {
+                $className = $this->getEventClassName($task->priority, $task->status);
                 return [
                     'id' => $task->id,
-                    'title' => $task->name,
-                    'start' => $task->due_date,
-                    'end' => $task->due_date,
+                    'title' => $task->title,
+                    'start' => $task->due_date->format('Y-m-d\TH:i:s'),
+                    'end' => $task->due_date->format('Y-m-d\TH:i:s'),
+                    'allDay' => false,
+                    'className' => $className,
                     'extendedProps' => [
-                        'equipment' => $task->equipment->pluck('id')->toArray()
+                        'description' => $task->description,
+                        'location' => $task->location,
+                        'priority' => $task->priority,
+                        'status' => $task->status,
+                        'equipment' => $task->equipment ? $task->equipment->name : null
                     ]
                 ];
             });
@@ -177,5 +170,57 @@ class TaskController extends Controller
         $classes[] = 'text-white rounded-lg p-2';
 
         return implode(' ', $classes);
+    }
+    
+    /**
+     * Display a listing of all tasks for admin view.
+     */
+    public function adminIndex()
+    {
+        $tasks = Task::with(['assignedUser', 'creator', 'equipment'])
+                     ->latest()
+                     ->paginate(10);
+                     
+        return view('admin.tasks.index', compact('tasks'));
+    }
+    
+    public function adminCalendar()
+    {
+        return view('admin.tasks.calendar');
+    }
+    
+    public function calendarData()
+    {
+        $tasks = Task::with(['assignedUser', 'creator', 'equipment'])->get();
+        $events = [];
+        
+        foreach ($tasks as $task) {
+            $events[] = [
+                'id' => $task->id,
+                'title' => $task->title,
+                'start' => $task->due_date ? $task->due_date->format('Y-m-d\TH:i:s') : null,
+                'allDay' => false,
+                'className' => $this->getEventClassName($task->priority, $task->status),
+                'description' => $task->description,
+                'priority' => $task->priority,
+                'status' => $task->status,
+                'location' => $task->location,
+                'assigned_to_name' => $task->assignedUser ? $task->assignedUser->name : null,
+                'created_by_name' => $task->creator ? $task->creator->name : null,
+                'equipment_name' => $task->equipment ? $task->equipment->name : null,
+                'edit_url' => route('admin.tasks.edit', $task),
+                'delete_url' => route('admin.tasks.destroy', $task),
+            ];
+        }
+        
+        return response()->json($events);
+    }
+    
+    /**
+     * Display the specified resource.
+     */
+    public function show(Task $task)
+    {
+        return view('admin.tasks.show', compact('task'));
     }
 } 

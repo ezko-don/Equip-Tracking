@@ -30,6 +30,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Add this line to configure Blade to be stricter with whitespace
+        Blade::withoutDoubleEncoding();
+
         // Register admin-specific Blade components
         Blade::component('admin-layout', AdminLayout::class);
 

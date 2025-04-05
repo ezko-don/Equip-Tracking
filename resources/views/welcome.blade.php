@@ -10,6 +10,11 @@
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
+    <style>
+        [x-cloak] {
+            display: none !important;
+        }
+    </style>
 <body class="antialiased bg-gray-50">
     <!-- Navigation -->
     <nav x-data="{ isOpen: false }" class="bg-white shadow-lg fixed w-full z-50">
@@ -55,7 +60,7 @@
     </nav>
 
     <!-- Mobile menu -->
-    <div class="md:hidden" id="mobile-menu" x-show="isOpen" x-transition:enter="transition ease-out duration-100 transform" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100" x-transition:leave="transition ease-in duration-75 transform" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95">
+    <div class="md:hidden fixed top-20 left-0 right-0 bg-white shadow-lg z-40" id="mobile-menu" x-show="isOpen" x-cloak x-transition:enter="transition ease-out duration-100 transform" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100" x-transition:leave="transition ease-in duration-75 transform" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95">
         <div class="px-2 pt-2 pb-3 space-y-1">
             <a href="#about" class="text-blue-900 hover:text-blue-700 block px-3 py-2 rounded-md text-base font-medium">About</a>
             <a href="#contact" class="text-blue-900 hover:text-blue-700 block px-3 py-2 rounded-md text-base font-medium">Contact</a>

@@ -11,7 +11,7 @@
     </div>
 
     <div class="bg-white shadow-md rounded-lg p-6">
-        <form action="{{ route('admin.maintenances.update', $maintenance) }}" method="POST">
+        <form action="{{ route('admin.maintenances.update', $maintenance) }}" method="POST" enctype="multipart/form-data">
             @csrf
             @method('PUT')
             
@@ -106,6 +106,50 @@
                 <textarea name="notes" id="notes" rows="3"
                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">{{ old('notes', $maintenance->notes) }}</textarea>
                 @error('notes')
+                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                @enderror
+            </div>
+
+            <!-- Receipt Upload Section -->
+            <div class="mt-6">
+                <label for="receipt" class="block text-sm font-medium text-gray-700">Receipt (Image or PDF)</label>
+                
+                @if($maintenance->receipt_path)
+                    <div class="mb-4 border p-4 rounded-md bg-gray-50">
+                        <p class="text-sm text-gray-700 mb-2">Current Receipt:</p>
+                        @php
+                            $extension = pathinfo($maintenance->receipt_path, PATHINFO_EXTENSION);
+                            $isPdf = strtolower($extension) === 'pdf';
+                        @endphp
+                        
+                        @if($isPdf)
+                            <div class="mb-2">
+                                <a href="{{ asset('storage/' . $maintenance->receipt_path) }}" 
+                                   class="text-blue-600 hover:text-blue-800"
+                                   target="_blank">View PDF Receipt</a>
+                            </div>
+                        @else
+                            <img src="{{ asset('storage/' . $maintenance->receipt_path) }}" 
+                                 alt="Current Receipt" 
+                                 class="h-32 w-auto border rounded shadow-sm">
+                        @endif
+                    </div>
+                @endif
+                
+                <div class="mt-1 flex items-center">
+                    <input type="file" name="receipt" id="receipt" 
+                           accept=".jpg,.jpeg,.png,.pdf"
+                           class="mt-1 block w-full text-sm text-gray-500
+                                  file:mr-4 file:py-2 file:px-4
+                                  file:rounded-md file:border-0
+                                  file:text-sm file:font-semibold
+                                  file:bg-blue-50 file:text-blue-700
+                                  hover:file:bg-blue-100">
+                </div>
+                <p class="mt-1 text-sm text-gray-500">
+                    Upload a new receipt to replace the current one (optional)
+                </p>
+                @error('receipt')
                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                 @enderror
             </div>

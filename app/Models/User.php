@@ -18,8 +18,8 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
-        'profile_photo',
         'profile_photo_path',
+        'password_changed',
     ];
 
     protected $hidden = [
@@ -30,7 +30,10 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
+        'password_changed' => 'boolean',
     ];
+
+    protected $appends = ['profile_photo_url'];
 
     public function isAdmin(): bool
     {
@@ -42,9 +45,14 @@ class User extends Authenticatable
         return $this->hasMany(Booking::class);
     }
 
-    public function tasks(): HasMany
+    public function tasks()
     {
-        return $this->hasMany(Task::class);
+        return $this->hasMany(Task::class, 'assigned_to');
+    }
+
+    public function createdTasks(): HasMany
+    {
+        return $this->hasMany(Task::class, 'created_by');
     }
 
     /**
@@ -58,11 +66,8 @@ class User extends Authenticatable
             return Storage::disk('public')->url($this->profile_photo_path);
         }
         
-        if ($this->profile_photo) {
-            return Storage::disk('public')->url($this->profile_photo);
-        }
-        
-        return null;
+        // Return a default avatar URL if no photo is set
+        return 'https://ui-avatars.com/api/?name=' . urlencode($this->name) . '&color=7F9CF5&background=EBF4FF';
     }
 
     public function unreadMessages()

@@ -1,6 +1,5 @@
 import { defineConfig } from 'vite';
 import laravel from 'laravel-vite-plugin';
-import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig({
     plugins: [
@@ -11,18 +10,5 @@ export default defineConfig({
             ],
             refresh: true,
         }),
-        tailwindcss(),
     ],
-    resolve: {
-        alias: {
-            '@fortawesome': '/node_modules/@fortawesome',
-        },
-    },
-    build: {
-        rollupOptions: {
-            input: {
-                app: './resources/js/app.js',
-            },
-        },
-    },
 });

@@ -89,7 +89,7 @@
                         <label for="image" class="block text-sm font-medium text-gray-700">Image</label>
                         @if($equipment->image)
                             <div class="mt-2">
-                                <img src="{{ Storage::url($equipment->image) }}" alt="{{ $equipment->name }}" class="h-32 w-32 object-cover rounded-lg">
+                                <img src="{{ $equipment->image_url }}" alt="{{ $equipment->name }}" class="h-32 w-32 object-cover rounded-lg">
                             </div>
                         @endif
                         <input type="file" name="image" id="image" accept="image/*"

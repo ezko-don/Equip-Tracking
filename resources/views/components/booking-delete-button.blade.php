@@ -1,6 +1,6 @@
 @props(['booking'])
 
-<form action="{{ route('bookings.destroy', $booking) }}" method="POST" class="inline">
+<form action="{{ route('bookings.destroy', ['booking' => $booking->id]) }}" method="POST" class="inline">
     @csrf
     @method('DELETE')
     <button type="submit" 
